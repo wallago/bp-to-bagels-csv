@@ -60,6 +60,7 @@
             src = ./.;
             inherit release;
 
+            nativeBuildPackage = with pkgs; [ sqlite ];
             meta = with pkgs.lib; {
               description = "Import a Banque Populaire CSV export into a Bagels SQLite database.";
               homepage = "https://github.com/wallago/bp-to-bagels-csv";

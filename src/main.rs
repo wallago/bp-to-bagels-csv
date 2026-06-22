@@ -1,93 +1,19 @@
-use std::{fmt, path::PathBuf, str::FromStr};
-
 use anyhow::{Context, Result};
+use args::Args;
 use bp_to_bagels_csv::{
     models::bp::{Bp, BpRaw},
     utils::{
-        add_operation, add_transfer, category_index, category_map, ensure_uncategorized,
-        is_duplicate, resolve_account,
+        add_operation, category_index, category_map, ensure_uncategorized, existing_record_counts,
+        resolve_account,
     },
 };
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use rusqlite::Connection;
+use rust_decimal::prelude::ToPrimitive;
 use tracing::Level;
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-    /// Path of Bagels database
-    #[arg(long,value_parser = db_path_exist)]
-    db: String,
-
-    /// Bagels account name
-    #[arg(short, long, value_enum)]
-    account: Account,
-
-    /// Path of BP CSV file
-    #[arg(long,value_parser = csv_path_exist)]
-    csv: String,
-
-    /// Parse and report without writing to the DB
-    #[arg(long, default_value_t = false)]
-    dry_run: bool,
-
-    /// Increase logging verbosity (-v, -vv, -vvv)
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    verbose: u8,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-enum Account {
-    CompteCourant,
-    LivretA,
-    Pel,
-    LivretDevelopementDurable,
-}
-
-impl fmt::Display for Account {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Account::CompteCourant => write!(f, "Compte Courant"),
-            Account::LivretA => write!(f, "Livret A"),
-            Account::Pel => write!(f, "PEL"),
-            Account::LivretDevelopementDurable => write!(f, "Livret Developement Durable"),
-        }
-    }
-}
-
-fn transfer_dest(detail: &str) -> Option<Account> {
-    let d = detail.to_uppercase();
-    if d.contains("COMPTE DE DEPOT PARTIC") || d.contains("COMPTE DE CHEQUES") {
-        Some(Account::CompteCourant)
-    } else if d.contains("LIVRET DEVELOPPEMENT D") {
-        Some(Account::LivretDevelopementDurable)
-    } else if d.contains("LIVRET A") {
-        Some(Account::LivretA)
-    } else if d.contains("PEL") {
-        Some(Account::Pel)
-    } else {
-        None
-    }
-}
-
-fn db_path_exist(s: &str) -> Result<String> {
-    let path = PathBuf::from_str(s)?;
-    if !path.exists() {
-        Err(anyhow::anyhow!("Bagels database path not exist"))
-    } else {
-        Ok(s.to_string())
-    }
-}
-
-fn csv_path_exist(s: &str) -> Result<String> {
-    let path = PathBuf::from_str(s)?;
-    if !path.exists() {
-        Err(anyhow::anyhow!("BP CSV path not exist"))
-    } else {
-        Ok(s.to_string())
-    }
-}
+mod args;
 
 fn main() -> Result<()> {
     let args = Args::parse();
@@ -124,31 +50,39 @@ fn main() -> Result<()> {
         .unwrap(),
     );
 
-    for account in Account::value_variants() {
-        resolve_account(&conn, &account.to_string())?;
-    }
     let account_id = resolve_account(&conn, &args.account.to_string())?;
     let uncategorized_id = ensure_uncategorized(&conn)?;
     let categories = category_index(&conn)?;
+
+    // Count-based dedup: how many records already exist per (date, label, cents) for this
+    // account. Each matching CSV row consumes one, so re-imports stay idempotent without
+    // dropping genuinely distinct same-day operations.
+    let mut remaining_counts = existing_record_counts(&conn, account_id)?;
 
     let mut inserted_operations = 0;
     let mut skipped_operations = 0;
     let mut lost_operations = 0;
     for row in &rows {
         pb.inc(1);
-        match is_duplicate(&conn, account_id, row) {
-            Ok(true) => {
-                tracing::warn!("skipping duplicate: {row:#?}");
-                skipped_operations += 1;
-                continue;
-            }
-            Ok(false) => {}
-            Err(err) => {
-                tracing::error!("duplicate check failed for {}: {err}", row.label);
-                lost_operations += 1;
-                continue;
-            }
+
+        let date_str = row
+            .date
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .format("%Y-%m-%d %H:%M:%S%.6f")
+            .to_string();
+        // Match the f64-based key built from the DB in `existing_record_counts`.
+        let cents = (row.amount.abs().to_f64().unwrap_or(0.0) * 100.0).round() as i64;
+        let key = (date_str, row.label.clone(), cents);
+        if let Some(remaining) = remaining_counts.get_mut(&key)
+            && *remaining > 0
+        {
+            *remaining -= 1;
+            tracing::warn!("skipping duplicate: {row:#?}");
+            skipped_operations += 1;
+            continue;
         }
+
         if args.dry_run {
             tracing::debug!(
                 "{} {} {} {} {}",
@@ -159,27 +93,6 @@ fn main() -> Result<()> {
                 row.subcategory
             );
             continue;
-        }
-
-        let is_internal = row.subcategory.eq_ignore_ascii_case("Virement interne");
-        if is_internal && row.amount.is_sign_negative() {
-            match transfer_dest(&row.detail) {
-                Some(dest) => {
-                    let to_id = resolve_account(&conn, &dest.to_string())?;
-                    match add_transfer(&conn, account_id, to_id, row) {
-                        Ok(_) => inserted_operations += 1,
-                        Err(err) => {
-                            lost_operations += 1;
-                            tracing::error!("failing to add transfer {:?} due to {}", row, err);
-                        }
-                    }
-                    continue;
-                }
-                None => tracing::warn!(
-                    "internal transfer {:?}: destination unresolved, importing as normal record",
-                    row.detail
-                ),
-            }
         }
 
         let category_id = categories

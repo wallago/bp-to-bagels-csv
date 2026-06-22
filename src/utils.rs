@@ -30,27 +30,28 @@ pub fn resolve_account(conn: &Connection, name: &str) -> Result<i64> {
     Ok(conn.last_insert_rowid())
 }
 
-pub fn is_duplicate(conn: &Connection, account_id: i64, operation: &Bp) -> Result<bool> {
-    let date_str = operation
-        .date
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .format("%Y-%m-%d %H:%M:%S%.6f")
-        .to_string();
+/// Count, per account, how many records already exist for each
+/// `(date, label, amount-in-cents)` triple. Used for count-based dedup so re-running an
+/// import is idempotent without dropping genuinely distinct same-day operations.
+pub fn existing_record_counts(
+    conn: &Connection,
+    account_id: i64,
+) -> Result<HashMap<(String, String, i64), i64>> {
+    let mut stmt = conn.prepare(
+        "SELECT date, label, amount, COUNT(*) FROM record \
+         WHERE accountId = ?1 GROUP BY date, label, amount",
+    )?;
 
-    let amount = operation.amount.abs().to_f64();
-    let found: Option<i64> = conn
-        .query_row(
-            "SELECT 1 FROM record WHERE \
-                 (accountId = ?1 AND date = ?2 AND label = ?3 AND ABS(amount - ?4) < 0.005) \
-              OR (transferToAccountId = ?1 AND date = ?2 AND ABS(amount - ?4) < 0.005) \
-             LIMIT 1",
-            params![account_id, date_str, operation.label, amount],
-            |row| row.get(0),
-        )
-        .optional()?;
+    let rows = stmt.query_map(params![account_id], |row| {
+        let date: String = row.get(0)?;
+        let label: String = row.get(1)?;
+        let amount: f64 = row.get(2)?;
+        let count: i64 = row.get(3)?;
+        Ok(((date, label, (amount * 100.0).round() as i64), count))
+    })?;
 
-    Ok(found.is_some())
+    let map = rows.collect::<rusqlite::Result<HashMap<(String, String, i64), i64>>>()?;
+    Ok(map)
 }
 
 pub fn category_index(conn: &Connection) -> Result<HashMap<String, i64>> {
@@ -110,31 +111,6 @@ pub fn add_operation(
             account_id,
             category_id,
             operation.amount.is_sign_positive()
-        ],
-    )?;
-    Ok(rows)
-}
-
-pub fn add_transfer(conn: &Connection, from_id: i64, to_id: i64, operation: &Bp) -> Result<usize> {
-    let date_str = operation
-        .date
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .format("%Y-%m-%d %H:%M:%S%.6f")
-        .to_string();
-    let now = Local::now().format("%Y-%m-%d %H:%M:%S%.6f").to_string();
-    let rows = conn.execute(
-        "INSERT INTO record (createdAt, updatedAt, label, amount, date, \
-                accountId, categoryId, transferToAccountId, tags, isInProgress, \
-                isIncome, isTransfer) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL, 0, 0, 1)",
-        params![
-            now,
-            now,
-            operation.label,
-            operation.amount.abs().to_f64(),
-            date_str,
-            from_id,
-            to_id
         ],
     )?;
     Ok(rows)
