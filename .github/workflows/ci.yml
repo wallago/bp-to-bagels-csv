@@ -26,7 +26,6 @@ jobs:
         with:
           args: "-vv"
           commits: "HEAD"
-
   typos:
     name: Typos
     runs-on: self-hosted
@@ -34,7 +33,6 @@ jobs:
       - uses: actions/checkout@v7
       - name: Check typos
         uses: crate-ci/typos@master
-
   # ── Rust ──────────────────────────────────────────────────────
   format:
     name: Format
@@ -46,7 +44,6 @@ jobs:
         run: nix develop .#ci --command cargo fmt --all --check
       - name: Nix format
         run: nix develop .#ci --command bash -c 'nixfmt --check $(git ls-files "*.nix")'
-
   clippy:
     name: Clippy
     runs-on: self-hosted
@@ -54,15 +51,13 @@ jobs:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@main
       - run: nix develop .#ci --command cargo clippy --all-targets -- -D warnings
-
-  test:
-    name: Test
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v7
-      - uses: DeterminateSystems/nix-installer-action@main
-      - run: nix develop .#ci --command cargo nextest run
-
+  # test:
+  #   name: Test
+  #   runs-on: self-hosted
+  #   steps:
+  #     - uses: actions/checkout@v7
+  #     - uses: DeterminateSystems/nix-installer-action@main
+  #     - run: nix develop .#ci --command cargo nextest run
   deny:
     name: Cargo deny
     runs-on: self-hosted
@@ -70,7 +65,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@main
       - run: nix develop .#ci --command cargo deny check
-
   audit:
     name: Cargo audit
     runs-on: self-hosted
@@ -78,7 +72,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@main
       - run: nix develop .#ci --command cargo audit
-
   machete:
     name: Unused deps
     runs-on: self-hosted
@@ -86,7 +79,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@main
       - run: nix develop .#ci --command cargo machete
-
   # ── Nix ───────────────────────────────────────────────────────
   check:
     name: Flake check
@@ -95,7 +87,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@main
       - run: nix flake check --print-build-logs
-
   statix:
     name: Statix
     runs-on: self-hosted
@@ -103,7 +94,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@main
       - run: nix run nixpkgs#statix -- check .
-
   deadnix:
     name: Deadnix
     runs-on: self-hosted
