@@ -6,3 +6,11 @@
 # Added by cargo
 
 /target
+
+# Added by nix
+
+/result
+
+# Added by claude
+
+.claude
