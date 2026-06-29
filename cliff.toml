@@ -1,6 +1,6 @@
 [remote.github]
 owner = "wallago"
-repo = "https://github.com/wallago/bp-to-bagels-csv"
+repo = "bp-to-bagels-csv"
 
 [changelog]
 header = """
