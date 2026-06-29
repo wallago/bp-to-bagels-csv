@@ -1,0 +1,113 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 0 * * 0"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  commit-format:
+    name: Commit format
+    runs-on: self-hosted
+    steps:
+      - name: Checkout the repository
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v7
+      - name: Checkout the repository
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Run committed
+        uses: crate-ci/committed@master
+        with:
+          args: "-vv"
+          commits: "HEAD"
+
+  typos:
+    name: Typos
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check typos
+        uses: crate-ci/typos@master
+
+  # ── Rust ──────────────────────────────────────────────────────
+  format:
+    name: Format
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: Rust format
+        run: nix develop .#ci --command cargo fmt --all --check
+      - name: Nix format
+        run: nix develop .#ci --command bash -c 'nixfmt --check $(git ls-files "*.nix")'
+
+  clippy:
+    name: Clippy
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix develop .#ci --command cargo clippy --all-targets -- -D warnings
+
+  test:
+    name: Test
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix develop .#ci --command cargo nextest run
+
+  deny:
+    name: Cargo deny
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix develop .#ci --command cargo deny check
+
+  audit:
+    name: Cargo audit
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix develop .#ci --command cargo audit
+
+  machete:
+    name: Unused deps
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix develop .#ci --command cargo machete
+
+  # ── Nix ───────────────────────────────────────────────────────
+  check:
+    name: Flake check
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix flake check --print-build-logs
+
+  statix:
+    name: Statix
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix run nixpkgs#statix -- check .
+
+  deadnix:
+    name: Deadnix
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix run nixpkgs#deadnix -- --fail .

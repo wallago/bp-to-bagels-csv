@@ -1,0 +1,42 @@
+name: CD
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build-and-cache:
+    name: Build & push to Attic
+    runs-on: self-hosted
+    environment: "ATTIC Cache"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: Install Attic client
+        run: nix profile add nixpkgs#attic-client
+      - name: Configure Attic
+        env:
+          ATTIC_TOKEN: ${{ secrets.ATTIC_TOKEN }}
+        run: |
+          attic login wallago http://10.100.0.1:5504 "$ATTIC_TOKEN"
+          attic use wallago:mycache
+      - name: Build packages
+        run: |
+          nix build \
+            .#bp-to-bagels-csv \
+            .#bp-to-bagels-csv-debug \
+            --no-link --print-out-paths > out-paths.txt
+          echo "Built:"; cat out-paths.txt
+      - name: Cache the dev shell (toolchain + tools)
+        run: |
+          nix develop .#ci --profile ci-profile --command true
+          readlink -f ci-profile >> out-paths.txt
+      - name: Push to Attic
+        run: |
+          for p in $(cat out-paths.txt); do
+            attic push wallago:mycache "$p"
+          done

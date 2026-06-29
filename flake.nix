@@ -45,11 +45,39 @@
         # ── Build helper ──────────────────────────────────────────
         buildApp =
           { release }:
-          pkgs.callPackage ./nix/package.nix { inherit naersk' release; };
+          pkgs.callPackage ./nix/package.nix {
+            inherit naersk' release;
+            src = ./.;
+          };
 
         # ── Claude Settings ─────────────────────────────────────
         claude = claude-code.packages.${system}.default;
         claudeLocalSettings = import ./nix/claude_settings.nix;
+
+        # ── Tooling shared by the dev shell and CI ───────────────
+        ciTools = with pkgs; [
+          rust
+
+          # rust tooling
+          cargo-nextest
+          cargo-deny
+          cargo-audit
+          cargo-machete
+          cargo-edit
+
+          # repo tooling
+          typos
+          committed
+          git-cliff
+
+          # nix tooling
+          nixfmt
+          statix
+          deadnix
+
+          # crate deps
+          sqlite
+        ];
       in
       {
         # ── Packages ──────────────────────────────────────────────
@@ -64,20 +92,24 @@
 
         # ── Dev Shell (nix develop) ──────────────────────────────
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            rust
-            rust-analyzer
-            just
-            claude
-            nodejs
-
-            # crate deps
-            sqlite
-          ];
+          buildInputs =
+            ciTools
+            ++ (with pkgs; [
+              rust-analyzer
+              just
+              claude
+              nodejs
+            ]);
           shellHook = ''
             mkdir -p .claude
             echo '${claudeLocalSettings}' > .claude/settings.local.json
           '';
+        };
+
+        # ── CI Shell (nix develop .#ci) ──────────────────────────
+        # Lean: just the toolchain + checks, no editor/claude/shellHook.
+        devShells.ci = pkgs.mkShell {
+          buildInputs = ciTools;
         };
       }
     );
