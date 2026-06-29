@@ -89,7 +89,7 @@
         };
 
         # ── Checks (nix flake check) ─────────────────────────────
-        checks.check = self.packages.${system}.bp-to-bagels-csv-debug;
+        checks.check = self.packages.${pkgs.stdenv.hostPlatform.system}.bp-to-bagels-csv-debug;
 
         # ── Dev Shell (nix develop) ──────────────────────────────
         devShells.default = pkgs.mkShell {
