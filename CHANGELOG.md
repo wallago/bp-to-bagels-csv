@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.1 - 2026-06-29
+
+### 🚀 Features
+
+- *(flake)* Add home manager module by @wallago
+
+### 🐛 Bug Fixes
+
+- *(nix)* Add the good name to hm module by @wallago
+
+
+**Full Changelog**: https://github.com/wallago/bp-to-bagels-csv/compare/v0.1.0...v0.1.1
+
 ## 0.1.0 - 2026-06-29
 
 ### 🚀 Features
@@ -9,18 +22,19 @@
 
 ### 🐛 Bug Fixes
 
-- *(cliff)* Wrong repo name
-- *(flake)* Pass the right path
-- Typos
-- *(license)* Add the right license
+- *(cliff)* Wrong repo name by @wallago
+- *(flake)* Pass the right path by @wallago
+- Typos by @wallago
+- *(license)* Add the right license by @wallago
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(justfile)* Add justfile
-- *(flake)* Bump lock
-- *(workflows)* Add CI + CD
-- *(nix)* Split stuff between files
-- Refactor unused or unwant stuff
+- *(release)* V0.1.0 by @wallago
+- *(justfile)* Add justfile by @wallago
+- *(flake)* Bump lock by @wallago
+- *(workflows)* Add CI + CD by @wallago
+- *(nix)* Split stuff between files by @wallago
+- Refactor unused or unwant stuff by @wallago
 
 
 ## New Contributors
