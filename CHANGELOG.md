@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.2 - 2026-06-29
+
+### 🚀 Features
+
+- *(workflows)* Add release to use cliff
+
+### 🐛 Bug Fixes
+
+- *(ci)* Remove test for now because no test are set
+
+
+**Full Changelog**: https://github.com/wallago/bp-to-bagels-csv/compare/v0.1.1...v0.1.2
+
 ## 0.1.1 - 2026-06-29
 
 ### 🚀 Features
@@ -9,6 +22,10 @@
 ### 🐛 Bug Fixes
 
 - *(nix)* Add the good name to hm module by @wallago
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V0.1.1 by @wallago
 
 
 **Full Changelog**: https://github.com/wallago/bp-to-bagels-csv/compare/v0.1.0...v0.1.1
