@@ -3,6 +3,8 @@
 [licenses]
 # license detection confidence (0.0 - 1.0)
 confidence-threshold = 0.8
+# keep the allow-list forward-looking; don't warn on licenses no dep uses yet
+unused-allowed-license = "allow"
 # allowed licenses — add or remove based on your requirements
 allow = [
   "MIT",
@@ -14,6 +16,15 @@ allow = [
   "BSL-1.0",
   "Zlib",
   "ISC",
+]
+
+[bans]
+# surface accidental duplicate dependencies…
+multiple-versions = "warn"
+# …but ignore this known transitive dup: rusqlite pulls hashbrown 0.16
+# (via sqlite-wasm-rs) and 0.17 (via hashlink). Not fixable from here.
+skip = [
+  { crate = "hashbrown" },
 ]
 
 [sources]
