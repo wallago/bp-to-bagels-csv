@@ -2,12 +2,12 @@
   lib,
   sqlite,
   naersk',
+  src,
   release ? true,
 }:
 naersk'.buildPackage {
   name = "bp-to-bagels-csv";
-  src = ./.;
-  inherit release;
+  inherit src release;
 
   nativeBuildInputs = [ sqlite ];
 
