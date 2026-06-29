@@ -118,7 +118,7 @@ fn main() -> Result<()> {
         pb.finish_with_message(format!("\n=> Inserted {summary}"));
     }
     if let Err(err) = conn.close() {
-        anyhow::bail!("failed to disconnect proprely from db due to {err:?}");
+        anyhow::bail!("failed to disconnect properly from db due to {err:?}");
     }
     Ok(())
 }

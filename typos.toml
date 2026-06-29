@@ -5,6 +5,7 @@
 # Example:
 # ratatui = "ratatui"
 # kubernetes = "kubernetes"
+Salaires = "Salaires"
 
 [files]
 # Exclude files or directories from checking
