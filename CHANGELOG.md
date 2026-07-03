@@ -8,6 +8,7 @@
 
 ### ⚙️ Miscellaneous Tasks
 
+- *(release)* V0.1.3
 - *(cargo)* Bump lock by @wallago
 - *(flake)* Change pkgs.system to pkgs.stdenv.hostPlatform.system by @wallago
 
