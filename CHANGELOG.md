@@ -1,14 +1,35 @@
 # Changelog
 
+## 0.1.3 - 2026-07-03
+
+### 🚀 Features
+
+- *(github)* Add stuffs by @wallago
+
+### ⚙️ Miscellaneous Tasks
+
+- *(cargo)* Bump lock by @wallago
+- *(flake)* Change pkgs.system to pkgs.stdenv.hostPlatform.system by @wallago
+
+
+## New Contributors
+* @dependabot[bot] made their first contribution
+
+**Full Changelog**: https://github.com/wallago/bp-to-bagels-csv/compare/v0.1.2...v0.1.3
+
 ## 0.1.2 - 2026-06-29
 
 ### 🚀 Features
 
-- *(workflows)* Add release to use cliff
+- *(workflows)* Add release to use cliff by @wallago
 
 ### 🐛 Bug Fixes
 
-- *(ci)* Remove test for now because no test are set
+- *(ci)* Remove test for now because no test are set by @wallago
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V0.1.2 by @wallago
 
 
 **Full Changelog**: https://github.com/wallago/bp-to-bagels-csv/compare/v0.1.1...v0.1.2
