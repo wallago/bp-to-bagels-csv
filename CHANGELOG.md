@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 - 2026-07-03
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* V0.1.3
+
+
+**Full Changelog**: https://github.com/wallago/bp-to-bagels-csv/compare/v0.1.3...v0.1.4
+
 ## 0.1.3 - 2026-07-03
 
 ### 🚀 Features
